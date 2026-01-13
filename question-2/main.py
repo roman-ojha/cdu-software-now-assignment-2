@@ -112,6 +112,24 @@ def compute_seasonal_average(long_df: pd.DataFrame) -> Dict[str, float]:
     return season_mean
 
 
+def format_temperature(value: float) -> str:
+    """
+    Format a temperature float to one decimal place.
+    Handles NaN by returning 'NaN°C'.
+    """
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return "NaN°C"
+    return f"{round(value, ROUND_DECIMALS):.{ROUND_DECIMALS}f}°C"
+
+
+def write_seasonal_average(results: Dict[str, float]) -> None:
+    OUTPUT_SEASONAL = "average_temp.txt"
+    with open(OUTPUT_SEASONAL, "w", encoding="utf-8") as fh:
+        for season, val in results.items():
+            fh.write(f"{season}: {format_temperature(val)}\n")
+    print(f"Wrote seasonal averages to: {OUTPUT_SEASONAL}")
+
+
 def compute_largest_temperature_range(long_df: pd.DataFrame):
     # grouping by station. using both name and id in grouping key to avoid same station merges
     group_cols = []
@@ -140,24 +158,6 @@ def compute_largest_temperature_range(long_df: pd.DataFrame):
     return results
 
 
-def format_temperature(value: float) -> str:
-    """
-    Format a temperature float to one decimal place.
-    Handles NaN by returning 'NaN°C'.
-    """
-    if value is None or (isinstance(value, float) and np.isnan(value)):
-        return "NaN°C"
-    return f"{round(value, ROUND_DECIMALS):.{ROUND_DECIMALS}f}°C"
-
-
-def write_seasonal_average(results: Dict[str, float]) -> None:
-    OUTPUT_SEASONAL = "average_temp.txt"
-    with open(OUTPUT_SEASONAL, "w", encoding="utf-8") as fh:
-        for season, val in results.items():
-            fh.write(f"{season}: {format_temperature(val)}\n")
-    print(f"Wrote seasonal averages to: {OUTPUT_SEASONAL}")
-
-
 def write_largest_range(results) -> None:
     OUTPUT_RANGE = "largest_temp_range_station.txt"
     with open(OUTPUT_RANGE, "w", encoding="utf-8") as fh:
@@ -170,6 +170,38 @@ def write_largest_range(results) -> None:
             fh.write(
                 f"{label}: Range {format_temperature(rng)} (Max: {format_temperature(mx)}, Min: {format_temperature(mn)})\n")
     print(f"Wrote largest temperature range station(s) to: {OUTPUT_RANGE}")
+
+
+def compute_temperature_stability(long_df: pd.DataFrame, ddof: int = 0):
+    group_cols = []
+    if "STATION_NAME" in long_df.columns:
+        group_cols.append("STATION_NAME")
+    if "STN_ID" in long_df.columns:
+        group_cols.append("STN_ID")
+    df_valid = long_df.dropna(subset=["Temperature"])
+    # compute std per station
+    stds = df_valid.groupby(group_cols, observed=True)["Temperature"].agg(
+        lambda x: float(np.nan) if x.size == 0 else float(x.std(ddof=ddof))).reset_index()
+    if stds.empty:
+        return [], []
+
+    # name the std column
+    stds = stds.rename(columns={"Temperature": "StdDev"})
+    min_std = stds["StdDev"].min()
+    max_std = stds["StdDev"].max()
+
+    most_stable = stds[stds["StdDev"] == min_std]
+    most_variable = stds[stds["StdDev"] == max_std]
+
+    def rows_to_tuples(df_rows):
+        rows = []
+        for _, r in df_rows.iterrows():
+            name = r.get("STATION_NAME", "")
+            stn_id = str(r.get("STN_ID", "")) if "STN_ID" in r.index else ""
+            rows.append((name, stn_id, float(r["StdDev"])))
+        return rows
+
+    return rows_to_tuples(most_stable), rows_to_tuples(most_variable)
 
 
 def main():
@@ -187,7 +219,7 @@ def main():
     seasonal = compute_seasonal_average(long_df)
     write_seasonal_average(seasonal)
 
-    # # 5) largest temperature range
+    # 5) largest temperature range
     largest_ranges = compute_largest_temperature_range(long_df)
     write_largest_range(largest_ranges)
 
