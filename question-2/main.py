@@ -2,7 +2,7 @@ from __future__ import annotations
 import os
 import glob
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import pandas as pd
 import numpy as np
 
@@ -204,6 +204,29 @@ def compute_temperature_stability(long_df: pd.DataFrame, ddof: int = 0):
     return rows_to_tuples(most_stable), rows_to_tuples(most_variable)
 
 
+def write_temperature_stability(most_stable, most_variable):
+    OUTPUT_STABILITY = "temperature_stability_stations.txt"
+    with open(OUTPUT_STABILITY, "w", encoding="utf-8") as fh:
+        if not most_stable and not most_variable:
+            fh.write("No data available\n")
+            return
+
+        if most_stable:
+            for name, stn_id, sd in most_stable:
+                fh.write(
+                    f"Most Stable: {name}: StdDev {format_temperature(sd)}\n")
+        else:
+            fh.write("Most Stable: No data\n")
+
+        if most_variable:
+            for name, stn_id, sd in most_variable:
+                fh.write(
+                    f"Most Variable: {name}: StdDev {format_temperature(sd)}\n")
+        else:
+            fh.write("Most Variable: No data\n")
+    print(f"Wrote temperature stability results to: {OUTPUT_STABILITY}")
+
+
 def main():
     # 1) find CSV files
     TEMPERATURES_FOLDER = "temperatures"
@@ -222,6 +245,11 @@ def main():
     # 5) largest temperature range
     largest_ranges = compute_largest_temperature_range(long_df)
     write_largest_range(largest_ranges)
+
+    # 6) stability
+    # Use ddof=0 for population std; change to ddof=1 if you want sample std
+    most_stable, most_variable = compute_temperature_stability(long_df, ddof=0)
+    write_temperature_stability(most_stable, most_variable)
 
 
 if __name__ == "__main__":
