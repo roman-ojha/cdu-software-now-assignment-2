@@ -21,7 +21,6 @@ MONTH_TO_SEASON = {
 }
 
 # rounding for outputs
-ROUND_DECIMALS = 1
 
 
 def find_csv_files(folder: str) -> List[str]:
@@ -113,21 +112,18 @@ def compute_seasonal_average(long_df: pd.DataFrame) -> Dict[str, float]:
 
 
 def format_temperature(value: float) -> str:
-    """
-    Format a temperature float to one decimal place.
-    Handles NaN by returning 'NaN°C'.
-    """
+    round_decimals = 1
     if value is None or (isinstance(value, float) and np.isnan(value)):
         return "NaN°C"
-    return f"{round(value, ROUND_DECIMALS):.{ROUND_DECIMALS}f}°C"
+    return f"{round(value, round_decimals):.{round_decimals}f}°C"
 
 
 def write_seasonal_average(results: Dict[str, float]) -> None:
-    OUTPUT_SEASONAL = "average_temp.txt"
-    with open(OUTPUT_SEASONAL, "w", encoding="utf-8") as fh:
+    output_seasonal_file_name = "average_temp.txt"
+    with open(output_seasonal_file_name, "w", encoding="utf-8") as fh:
         for season, val in results.items():
             fh.write(f"{season}: {format_temperature(val)}\n")
-    print(f"Wrote seasonal averages to: {OUTPUT_SEASONAL}")
+    print(f"Wrote seasonal averages to: {output_seasonal_file_name}")
 
 
 def compute_largest_temperature_range(long_df: pd.DataFrame):
@@ -159,8 +155,8 @@ def compute_largest_temperature_range(long_df: pd.DataFrame):
 
 
 def write_largest_range(results) -> None:
-    OUTPUT_RANGE = "largest_temp_range_station.txt"
-    with open(OUTPUT_RANGE, "w", encoding="utf-8") as fh:
+    output_range_file_name = "largest_temp_range_station.txt"
+    with open(output_range_file_name, "w", encoding="utf-8") as fh:
         if not results:
             fh.write("No data available\n")
             return
@@ -169,7 +165,8 @@ def write_largest_range(results) -> None:
                 (f" (ID {stn_id})" if stn_id and stn_id != "nan" else "")
             fh.write(
                 f"{label}: Range {format_temperature(rng)} (Max: {format_temperature(mx)}, Min: {format_temperature(mn)})\n")
-    print(f"Wrote largest temperature range station(s) to: {OUTPUT_RANGE}")
+    print(
+        f"Wrote largest temperature range station(s) to: {output_range_file_name}")
 
 
 def compute_temperature_stability(long_df: pd.DataFrame, ddof: int = 0):
@@ -205,8 +202,8 @@ def compute_temperature_stability(long_df: pd.DataFrame, ddof: int = 0):
 
 
 def write_temperature_stability(most_stable, most_variable):
-    OUTPUT_STABILITY = "temperature_stability_stations.txt"
-    with open(OUTPUT_STABILITY, "w", encoding="utf-8") as fh:
+    temperature_stability_file_name = "temperature_stability_stations.txt"
+    with open(temperature_stability_file_name, "w", encoding="utf-8") as fh:
         if not most_stable and not most_variable:
             fh.write("No data available\n")
             return
@@ -224,13 +221,14 @@ def write_temperature_stability(most_stable, most_variable):
                     f"Most Variable: {name}: StdDev {format_temperature(sd)}\n")
         else:
             fh.write("Most Variable: No data\n")
-    print(f"Wrote temperature stability results to: {OUTPUT_STABILITY}")
+    print(
+        f"Wrote temperature stability results to: {temperature_stability_file_name}")
 
 
 def main():
     # 1) find CSV files
-    TEMPERATURES_FOLDER = "temperatures"
-    files = find_csv_files(TEMPERATURES_FOLDER)
+    dataset_folder_name = "temperatures"
+    files = find_csv_files(dataset_folder_name)
 
     # 2) load and concat
     combined = load_and_concat_csv(files)
