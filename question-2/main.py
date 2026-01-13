@@ -27,7 +27,15 @@ def find_csv_files(folder: str) -> List[str]:
 
 
 def load_and_concat_csv(files: List[str]) -> pd.DataFrame:
+    """
+    Load CSV files into a single DataFrame.
 
+    Each CSV is expected to contain columns:
+    STATION_NAME, STN_ID, LAT, LON, January, February, ..., December
+
+    Adds a 'SOURCE_FILE' column set to the filename (useful for debugging).
+    Returns concatenated DataFrame.
+    """
     parts = []
     for fpath in files:
         try:
@@ -72,6 +80,37 @@ def load_and_concat_csv(files: List[str]) -> pd.DataFrame:
     """
 
 
+def melt_months_to_long(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert wide table (one row per station with 12 month columns) to long format:
+    columns: STATION_NAME, STN_ID, LAT, LON, month, temperature, SOURCE_FILE, SOURCE_YEAR
+
+    Temperatures are converted to numeric and NaNs are preserved for later ignoring.
+    """
+    id_vars = [c for c in ("STATION_NAME", "STN_ID", "LAT",
+                           "LON", "SOURCE_FILE", "SOURCE_YEAR") if c in df.columns]
+    long = df.melt(id_vars=id_vars, value_vars=MONTHS,
+                   var_name="Month", value_name="Temperature")
+    # convert to numeric (in case numeric strings) and coerce errors to NaN
+    long["Temperature"] = pd.to_numeric(long["Temperature"], errors="coerce")
+    return long
+    """
+    Output will be like this:
+                                STATION_NAME  STN_ID    LAT     LON              SOURCE_FILE  SOURCE_YEAR     Month  Temperature
+        0                 ADELAIDE-KENT-TOWN   23090 -34.92  138.62  stations_group_1986.csv         1986   January        31.48
+        1          ALBANY-AIRPORT-COMPARISON    9741 -34.94  117.80  stations_group_1986.csv         1986   January        25.24
+        2              ALICE-SPRINGS-AIRPORT   15590 -23.80  133.89  stations_group_1986.csv         1986   January        38.40
+        3                       AMBERLEY-AMO   40004 -27.63  152.71  stations_group_1986.csv         1986   January        32.90
+        4             BARCALDINE-POST-OFFICE   36007 -23.55  145.29  stations_group_1986.csv         1986   January        38.03
+        ...                              ...     ...    ...     ...                      ...          ...       ...          ...
+        26875  WILSONS-PROMONTORY-LIGHTHOUSE   85096 -39.13  146.42  stations_group_2005.csv         2005  December        19.47
+        26876                      WITTENOOM    5026 -22.24  118.34  stations_group_2005.csv         2005  December        41.35
+        26877              WOOMERA-AERODROME   16001 -31.16  136.81  stations_group_2005.csv         2005  December        33.69
+        26878            WYALONG-POST-OFFICE   73054 -33.93  147.24  stations_group_2005.csv         2005  December        33.34
+        26879            YAMBA-PILOT-STATION   58012 -29.43  153.36  stations_group_2005.csv         2005  December        27.14
+    """
+
+
 def main():
 
     # 1) find CSV files
@@ -80,7 +119,9 @@ def main():
     # 2) load and concat
     combined = load_and_concat_csv(files)
 
-    print(combined)
+    # 3) melt to long form
+    long_df = melt_months_to_long(combined)
+    print(long_df)
 
 
 if __name__ == "__main__":
