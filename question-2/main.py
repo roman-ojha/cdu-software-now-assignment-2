@@ -9,12 +9,17 @@ import numpy as np
 
 TEMPERATURES_FOLDER = "temperatures"
 
-
-# months present in CSV in this exact order (from sample CSV)
 MONTHS = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
 ]
+
+MONTH_TO_SEASON = {
+    "December": "Summer", "January": "Summer", "February": "Summer",
+    "March": "Autumn", "April": "Autumn", "May": "Autumn",
+    "June": "Winter", "July": "Winter", "August": "Winter",
+    "September": "Spring", "October": "Spring", "November": "Spring",
+}
 
 
 def find_csv_files(folder: str) -> List[str]:
@@ -111,6 +116,31 @@ def melt_months_to_long(df: pd.DataFrame) -> pd.DataFrame:
     """
 
 
+def compute_seasonal_average(long_df: pd.DataFrame) -> Dict[str, float]:
+    """
+    Compute average temperature for each Australian season across ALL stations and ALL years.
+
+    Returns a dict season -> seasonal_avg (float).
+    """
+    # map months to seasons
+    long_df = long_df.copy()
+    long_df["Season"] = long_df["Month"].map(MONTH_TO_SEASON)
+
+    # group and mean, automatically ignores NaN
+    season_mean = long_df.groupby("Season", observed=True)[
+        "Temperature"].mean()
+
+    # Ensure ordering in result as Summer, Autumn, Winter, Spring
+    # seasons_order = ["Summer", "Autumn", "Winter", "Spring"]
+    # results = {}
+    # for s in seasons_order:
+    #     if s in season_mean.index:
+    #         results[s] = float(season_mean.loc[s])
+    #     else:
+    #         results[s] = float("nan")
+    return season_mean
+
+
 def main():
 
     # 1) find CSV files
@@ -121,7 +151,10 @@ def main():
 
     # 3) melt to long form
     long_df = melt_months_to_long(combined)
-    print(long_df)
+
+    # 4) seasonal averages
+    seasonal = compute_seasonal_average(long_df)
+    print(seasonal)
 
 
 if __name__ == "__main__":
