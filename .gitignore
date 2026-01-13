@@ -1,1 +1,3 @@
 question-2/.venv
+question-2/__pycache__/
+.DS_Store

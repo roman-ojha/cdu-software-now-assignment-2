@@ -20,7 +20,7 @@ MONTH_TO_SEASON = {
     "September": "Spring", "October": "Spring", "November": "Spring",
 }
 
-# rounding for outputs
+# Loading and Formatting Data as per needed ===============================
 
 
 def find_csv_files(folder: str) -> List[str]:
@@ -98,6 +98,18 @@ def melt_months_to_long(df: pd.DataFrame) -> pd.DataFrame:
         26879            YAMBA-PILOT-STATION   58012 -29.43  153.36  stations_group_2005.csv         2005  December        27.14
     """
 
+# ========================================
+
+
+def format_temperature(value: float) -> str:
+    round_decimals = 1
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return "NaN°C"
+    return f"{round(value, round_decimals):.{round_decimals}f}°C"
+
+
+# Seasonal Average Calculation and Output ============================
+
 
 def compute_seasonal_average(long_df: pd.DataFrame) -> Dict[str, float]:
     # map months to seasons
@@ -111,19 +123,16 @@ def compute_seasonal_average(long_df: pd.DataFrame) -> Dict[str, float]:
     return season_mean
 
 
-def format_temperature(value: float) -> str:
-    round_decimals = 1
-    if value is None or (isinstance(value, float) and np.isnan(value)):
-        return "NaN°C"
-    return f"{round(value, round_decimals):.{round_decimals}f}°C"
-
-
 def write_seasonal_average(results: Dict[str, float]) -> None:
     output_seasonal_file_name = "average_temp.txt"
     with open(output_seasonal_file_name, "w", encoding="utf-8") as fh:
         for season, val in results.items():
             fh.write(f"{season}: {format_temperature(val)}\n")
     print(f"Wrote seasonal averages to: {output_seasonal_file_name}")
+
+# =============================================================
+
+# Largest Temperature Range Calculation and Output ===============
 
 
 def compute_largest_temperature_range(long_df: pd.DataFrame):
@@ -168,6 +177,10 @@ def write_largest_range(results) -> None:
     print(
         f"Wrote largest temperature range station(s) to: {output_range_file_name}")
 
+# =============================================================
+
+
+# Temperature Stability Calculation and Output ========================
 
 def compute_temperature_stability(long_df: pd.DataFrame, ddof: int = 0):
     group_cols = []
@@ -223,6 +236,8 @@ def write_temperature_stability(most_stable, most_variable):
             fh.write("Most Variable: No data\n")
     print(
         f"Wrote temperature stability results to: {temperature_stability_file_name}")
+
+# ============================================================
 
 
 def main():
