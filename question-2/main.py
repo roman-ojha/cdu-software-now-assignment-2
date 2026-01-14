@@ -30,6 +30,9 @@ def find_csv_files(folder: str) -> List[str]:
 
 
 def load_and_concat_csv(files: List[str]) -> pd.DataFrame:
+    """
+    Getting loaded data add adding SOURCE_FILE and SOURCE_YEAR columns
+    """
     parts = []
     for fpath in files:
         try:
@@ -75,6 +78,9 @@ def load_and_concat_csv(files: List[str]) -> pd.DataFrame:
 
 
 def melt_months_to_long(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Converting Column wise months and it's temperatures into row so that we can process data easily.
+    """
     id_vars = [c for c in ("STATION_NAME", "STN_ID", "LAT",
                            "LON", "SOURCE_FILE", "SOURCE_YEAR") if c in df.columns]
     long = df.melt(id_vars=id_vars, value_vars=MONTHS,
@@ -102,6 +108,8 @@ def melt_months_to_long(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def format_temperature(value: float) -> str:
+    """
+    Format temperature with 1 decimal place and °C suffix."""
     round_decimals = 1
     if value is None or (isinstance(value, float) and np.isnan(value)):
         return "NaN°C"
@@ -124,6 +132,7 @@ def compute_seasonal_average(long_df: pd.DataFrame) -> Dict[str, float]:
 
 
 def write_seasonal_average(results: Dict[str, float]) -> None:
+    # Just Writing Seasonal Average to file
     output_seasonal_file_name = "average_temp.txt"
     with open(output_seasonal_file_name, "w", encoding="utf-8") as fh:
         for season, val in results.items():
@@ -136,6 +145,9 @@ def write_seasonal_average(results: Dict[str, float]) -> None:
 
 
 def compute_largest_temperature_range(long_df: pd.DataFrame):
+    """
+    Computing the station with the largest temperature range (max - min) across all months & years.
+    """
     # grouping by station. using both name and id in grouping key to avoid same station merges
     group_cols = []
     if "STATION_NAME" in long_df.columns:
@@ -164,16 +176,15 @@ def compute_largest_temperature_range(long_df: pd.DataFrame):
 
 
 def write_largest_range(results) -> None:
+    # Just Writing Largest Temperature Range to file
     output_range_file_name = "largest_temp_range_station.txt"
     with open(output_range_file_name, "w", encoding="utf-8") as fh:
         if not results:
             fh.write("No data available\n")
             return
         for name, stn_id, rng, mx, mn in results:
-            label = f"{name}" + \
-                (f" (ID {stn_id})" if stn_id and stn_id != "nan" else "")
             fh.write(
-                f"{label}: Range {format_temperature(rng)} (Max: {format_temperature(mx)}, Min: {format_temperature(mn)})\n")
+                f"Station {name}: Range {format_temperature(rng)} (Max: {format_temperature(mx)}, Min: {format_temperature(mn)})\n")
     print(
         f"Wrote largest temperature range station(s) to: {output_range_file_name}")
 
@@ -183,6 +194,9 @@ def write_largest_range(results) -> None:
 # Temperature Stability Calculation and Output ========================
 
 def compute_temperature_stability(long_df: pd.DataFrame, ddof: int = 0):
+    """
+    Computing temperature stability per station (standard deviation across all months & years).
+    """
     group_cols = []
     if "STATION_NAME" in long_df.columns:
         group_cols.append("STATION_NAME")
@@ -215,6 +229,7 @@ def compute_temperature_stability(long_df: pd.DataFrame, ddof: int = 0):
 
 
 def write_temperature_stability(most_stable, most_variable):
+    # Just Writing Temperature Stability to file
     temperature_stability_file_name = "temperature_stability_stations.txt"
     with open(temperature_stability_file_name, "w", encoding="utf-8") as fh:
         if not most_stable and not most_variable:
@@ -224,14 +239,14 @@ def write_temperature_stability(most_stable, most_variable):
         if most_stable:
             for name, stn_id, sd in most_stable:
                 fh.write(
-                    f"Most Stable: {name}: StdDev {format_temperature(sd)}\n")
+                    f"Most Stable: Station {name}: StdDev {format_temperature(sd)}\n")
         else:
             fh.write("Most Stable: No data\n")
 
         if most_variable:
             for name, stn_id, sd in most_variable:
                 fh.write(
-                    f"Most Variable: {name}: StdDev {format_temperature(sd)}\n")
+                    f"Most Variable: Station {name}: StdDev {format_temperature(sd)}\n")
         else:
             fh.write("Most Variable: No data\n")
     print(
