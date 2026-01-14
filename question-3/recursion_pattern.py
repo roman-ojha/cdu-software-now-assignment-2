@@ -1,11 +1,9 @@
+import turtle
+
+
 def draw_inward_indent_edge(t, length, depth):
     """
     Draw a single edge using recursive inward indentation.
-
-    Rules per recursion:
-    1) Split the edge into 3 equal segments
-    2) Replace the middle segment with two sides of an inward equilateral triangle
-    3) Repeat recursively for all 4 resulting segments until depth == 0
     """
     if depth == 0:
         t.forward(length)
@@ -13,10 +11,8 @@ def draw_inward_indent_edge(t, length, depth):
 
     third = length / 3.0
 
-    # Segment 1
     draw_inward_indent_edge(t, third, depth - 1)
 
-    # Inward indentation (two triangle sides)
     t.right(60)
     draw_inward_indent_edge(t, third, depth - 1)
 
@@ -24,6 +20,29 @@ def draw_inward_indent_edge(t, length, depth):
     draw_inward_indent_edge(t, third, depth - 1)
 
     t.right(60)
-
-    # Segment 4
     draw_inward_indent_edge(t, third, depth - 1)
+
+
+def draw_recursive_polygon(sides, side_length, depth):
+    """
+    Draw a polygon where each edge uses the recursive indentation pattern.
+    """
+    screen = turtle.Screen()
+    screen.title("HIT137 Assignment 2 - Q3 Recursive Pattern")
+
+    t = turtle.Turtle()
+    t.hideturtle()
+    t.speed(0)
+    t.pensize(1)
+
+    # Rough centering
+    t.penup()
+    t.goto(-side_length / 2.0, side_length / 3.0)
+    t.pendown()
+
+    exterior_angle = 360.0 / sides
+    for _ in range(sides):
+        draw_inward_indent_edge(t, side_length, depth)
+        t.left(exterior_angle)
+
+    screen.mainloop()
